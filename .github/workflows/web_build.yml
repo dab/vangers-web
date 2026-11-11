@@ -91,7 +91,7 @@ jobs:
 
   deploy:
     needs: build
-    if: ${{ github.repository == 'dab/vangers-web' && github.event_name == 'push' && github.ref == 'refs/heads/web-port' }}
+    if: ${{ github.repository == 'dab/vangers-web' && github.event_name != 'pull_request' && github.ref == 'refs/heads/web-port' }}
     runs-on: ubuntu-24.04
     permissions:
       pages: write
