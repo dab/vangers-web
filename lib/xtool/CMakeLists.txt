@@ -25,7 +25,7 @@ SET(xtool_SRCS
 )
 
 IF(EMSCRIPTEN)
-	LIST(APPEND xtool_SRCS web_frame.cpp)
+	LIST(APPEND xtool_SRCS web_frame.cpp frame_stats.cpp)
 ENDIF()
 
 IF(DXSTREAM_DEBUG)

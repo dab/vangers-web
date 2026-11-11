@@ -27,11 +27,31 @@ interface VangersModule {
   _web_is_driving(): number;
   _web_camera_x(): number;
   _web_camera_y(): number;
+  _web_perf_reset(): void;
+  _web_perf_quants(): number;
+  _web_perf_average_ms(): number;
+  _web_perf_p95_ms(): number;
+  _web_perf_max_ms(): number;
+  _web_perf_over_budget(): number;
+  _web_perf_heap_mb(): number;
+  _web_perf_heap_used_mb(): number;
+}
+
+export interface PerfSample {
+  quants: number;
+  averageMs: number;
+  p95Ms: number;
+  maxMs: number;
+  overBudget: number;
+  heapMb: number;
+  heapUsedMb: number;
 }
 
 export interface RunningEngine {
   isDriving(): boolean;
   camera(): [number, number];
+  resetPerf(): void;
+  perf(): PerfSample;
 }
 
 type CreateVangers = (options: Record<string, unknown>) => Promise<VangersModule>;
@@ -128,5 +148,15 @@ export async function startEngine(
   return {
     isDriving: () => module._web_is_driving() === 1,
     camera: () => [module._web_camera_x(), module._web_camera_y()],
+    resetPerf: () => module._web_perf_reset(),
+    perf: () => ({
+      quants: module._web_perf_quants(),
+      averageMs: module._web_perf_average_ms(),
+      p95Ms: module._web_perf_p95_ms(),
+      maxMs: module._web_perf_max_ms(),
+      overBudget: module._web_perf_over_budget(),
+      heapMb: Math.round(module._web_perf_heap_mb()),
+      heapUsedMb: Math.round(module._web_perf_heap_used_mb()),
+    }),
   };
 }

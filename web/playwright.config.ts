@@ -24,6 +24,7 @@ export default defineConfig({
       ? [
           { name: 'full', testMatch: /game\.spec/, timeout: 300_000, use: { ...devices['Desktop Chrome'] } },
           { name: 'full-safari', testMatch: /game\.spec/, timeout: 300_000, use: { ...devices['Desktop Safari'] } },
+          { name: 'full-firefox', testMatch: /game\.spec/, timeout: 300_000, use: { ...devices['Desktop Firefox'] } },
         ]
       : []),
   ],

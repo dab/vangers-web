@@ -148,3 +148,14 @@ TARGET_INCLUDE_DIRECTORIES(frame_pacer_test PRIVATE
 )
 
 ADD_TEST(NAME frame_pacer COMMAND frame_pacer_test)
+
+ADD_EXECUTABLE(frame_stats_test
+	frame_stats_test.cpp
+	../lib/xtool/frame_stats.cpp
+)
+
+TARGET_INCLUDE_DIRECTORIES(frame_stats_test PRIVATE
+	${PROJECT_SOURCE_DIR}/lib/xtool
+)
+
+ADD_TEST(NAME frame_stats COMMAND frame_stats_test)
