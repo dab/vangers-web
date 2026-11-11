@@ -86,6 +86,10 @@ build_ffmpeg() {
 	)
 }
 
+# Builds the Emscripten ports up front: this also installs SDL3's CMake config, which
+# web/cmake/sdl3 wraps and Clunk needs at configure time on a fresh toolchain.
+embuilder build sysroot sdl3 zlib ogg vorbis
+
 build_toml11
 build_clunk
 build_ffmpeg
