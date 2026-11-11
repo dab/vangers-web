@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { readFileSync } from 'node:fs';
 import { PNG } from 'pngjs';
 
 const dataDir = process.env.VANGERS_DATA_DIR!;
@@ -32,6 +33,13 @@ async function playToMenu(page: Page) {
   await page.getByRole('button', { name: 'Play' }).click();
   await expect.poll(() => sessionKind(page), { timeout: 120_000 }).toBe('running');
   await page.waitForTimeout(8000);
+}
+
+// Hover first: the game reads clicks at the cursor position it saw in earlier frames.
+async function gameClick(page: Page, x: number, y: number) {
+  await page.mouse.move(x, y, { steps: 5 });
+  await page.waitForTimeout(300);
+  await page.mouse.click(x, y);
 }
 
 // Share of near-black pixels inside a rectangle of a page screenshot.
@@ -119,4 +127,52 @@ test('fullscreen can be toggled from the corner button', async ({ page }) => {
   await expect.poll(() => page.evaluate(() => Boolean(document.fullscreenElement))).toBe(true);
   await page.getByRole('button', { name: 'Exit fullscreen' }).click();
   await expect.poll(() => page.evaluate(() => Boolean(document.fullscreenElement))).toBe(false);
+});
+
+// Reads Emscripten's IDBFS store for /persist: path -> file bytes.
+const persistedFiles = (page: Page) =>
+  page.evaluate(
+    () =>
+      new Promise<Record<string, number[]>>((resolve, reject) => {
+        const open = indexedDB.open('/persist');
+        open.onerror = () => reject(open.error);
+        open.onsuccess = () => {
+          const db = open.result;
+          if (!db.objectStoreNames.contains('FILE_DATA')) return resolve({});
+          const store = db.transaction('FILE_DATA').objectStore('FILE_DATA');
+          const out: Record<string, number[]> = {};
+          const cursor = store.openCursor();
+          cursor.onsuccess = () => {
+            const c = cursor.result;
+            if (!c) return resolve(out);
+            const contents = (c.value as { contents?: Uint8Array }).contents;
+            out[c.key as string] = contents ? Array.from(contents) : [];
+            c.continue();
+          };
+          cursor.onerror = () => reject(cursor.error);
+        };
+      }),
+  );
+
+test('saves and settings survive a page reload', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await importData(page);
+  await playToMenu(page);
+
+  // 4:3 menu letterboxed into 1280x720: content spans x 160..1120.
+  // New game, then past the Prehistory page into the first escave, which autosaves on entry.
+  await gameClick(page, 444, 54);
+  await page.waitForTimeout(3000);
+  await gameClick(page, 640, 513);
+  await page.waitForTimeout(6000);
+  await page.screenshot({ path: `${shots}/escave.png` });
+
+  await page.reload();
+  await expect(page.getByRole('button', { name: 'Play' })).toBeVisible();
+  const files = await persistedFiles(page);
+  expect(Object.keys(files)).toContain('/persist/settings.toml');
+  // Slot 8 is the autosave. It starts as the player's Steam autosave and is rewritten on escave entry.
+  const steamAutosave = [...readFileSync(`${dataDir}/savegame/save08.dat`)];
+  expect(files['/persist/savegame/save08.dat']?.length).toBeGreaterThan(0);
+  expect(files['/persist/savegame/save08.dat']).not.toEqual(steamAutosave);
 });

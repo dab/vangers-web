@@ -1,8 +1,11 @@
 import type { GameDataManifest } from '../domain/game-data/game-data-manifest';
 import type { GameDataStore } from '../domain/game-data/game-data-store';
+import { isSaveGame, SAVE_DIR, savesToSeed } from '../domain/saves/saves';
 import { OnDemandFiles } from './on-demand-files';
 
 const DATA_DIR = '/data';
+const PERSIST_DIR = '/persist';
+const PERSIST_SAVES = `${PERSIST_DIR}/savegame`;
 const PARALLEL_READS = 8;
 
 interface EmscriptenFs {
@@ -10,10 +13,15 @@ interface EmscriptenFs {
   writeFile(path: string, data: Uint8Array): void;
   unlink(path: string): void;
   chdir(path: string): void;
+  readdir(path: string): string[];
+  symlink(target: string, path: string): void;
+  mount(type: unknown, options: Record<string, unknown>, mountpoint: string): void;
+  syncfs(populate: boolean, done: (error: unknown) => void): void;
 }
 
 interface VangersModule {
   FS: EmscriptenFs;
+  IDBFS: unknown;
   callMain(args: string[]): void;
   vangersMedia?: OnDemandFiles;
 }
@@ -44,8 +52,30 @@ async function loadModule(canvas: HTMLCanvasElement, callbacks: EngineCallbacks)
   });
 }
 
+const syncfs = (fs: EmscriptenFs, populate: boolean) =>
+  new Promise<void>((resolve, reject) => fs.syncfs(populate, (error) => (error ? reject(error) : resolve())));
+
+// Saves and settings live in an IndexedDB-backed mount that persists on every file close.
+async function mountPersistentStorage(module: VangersModule, store: GameDataStore, manifest: GameDataManifest) {
+  const { FS } = module;
+  FS.mkdirTree(PERSIST_DIR);
+  FS.mount(module.IDBFS, { autoPersist: true }, PERSIST_DIR);
+  await syncfs(FS, true);
+  FS.mkdirTree(PERSIST_SAVES);
+  const existing = FS.readdir(PERSIST_SAVES).filter((name) => name !== '.' && name !== '..');
+  for (const gamePath of savesToSeed(manifest.files.map((f) => f.gamePath), existing)) {
+    FS.writeFile(`${PERSIST_DIR}/${gamePath}`, await store.read(gamePath));
+  }
+  FS.symlink(PERSIST_SAVES, `${DATA_DIR}/${SAVE_DIR.slice(0, -1)}`);
+  const flush = () => void syncfs(FS, false).catch(() => {});
+  addEventListener('pagehide', flush);
+  document.addEventListener('visibilitychange', () => document.visibilityState === 'hidden' && flush());
+}
+
 function createDirectories(fs: EmscriptenFs, manifest: GameDataManifest) {
-  const dirs = new Set(manifest.files.map((f) => f.gamePath.slice(0, f.gamePath.lastIndexOf('/') + 1)));
+  const dirs = new Set(
+    manifest.files.filter((f) => !isSaveGame(f.gamePath)).map((f) => f.gamePath.slice(0, f.gamePath.lastIndexOf('/') + 1)),
+  );
   for (const dir of dirs) fs.mkdirTree(`${DATA_DIR}/${dir}`);
 }
 
@@ -55,7 +85,7 @@ async function preloadFiles(
   manifest: GameDataManifest,
   onProgress: EngineCallbacks['onProgress'],
 ) {
-  const queue = manifest.files.filter((f) => f.loading === 'preload');
+  const queue = manifest.files.filter((f) => f.loading === 'preload' && !isSaveGame(f.gamePath));
   let doneBytes = 0;
   const worker = async () => {
     for (let file = queue.shift(); file; file = queue.shift()) {
@@ -77,6 +107,7 @@ export async function startEngine(
   const module = await loadModule(canvas, callbacks);
   createDirectories(module.FS, manifest);
   await preloadFiles(module.FS, store, manifest, callbacks.onProgress);
+  await mountPersistentStorage(module, store, manifest);
   module.vangersMedia = new OnDemandFiles(module.FS, DATA_DIR, (gamePath) => store.read(gamePath));
   module.FS.chdir(DATA_DIR);
   module.callMain(args);

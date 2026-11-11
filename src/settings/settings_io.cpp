@@ -685,7 +685,12 @@ bool SettingsManager::can_save() const {
 }
 
 SettingsManager &settings_manager() {
+#ifdef __EMSCRIPTEN__
+	// Settings live in /persist (IndexedDB); legacy files are imported from the game data.
+	static SettingsManager manager(SettingsPaths{"/persist/settings.toml"});
+#else
 	static SettingsManager manager;
+#endif
 	return manager;
 }
 
