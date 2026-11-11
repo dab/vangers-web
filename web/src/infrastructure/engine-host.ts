@@ -62,7 +62,7 @@ export interface EngineCallbacks {
   onExit(): void;
 }
 
-const engineUrl = (file: string) => `${import.meta.env.BASE_URL}engine/${file}`;
+const engineUrl = (file: string) => new URL(`${import.meta.env.BASE_URL}engine/${file}`, document.baseURI).href;
 
 async function loadModule(
   canvas: HTMLCanvasElement,

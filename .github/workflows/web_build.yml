@@ -1,0 +1,90 @@
+name: Web Build
+
+on:
+  push:
+    branches:
+      - master
+      - alpha
+  pull_request:
+    branches:
+      - master
+      - alpha
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: web-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    if: ${{ github.repository == 'KranX/Vangers' }}
+    runs-on: ubuntu-24.04
+    env:
+      EMSCRIPTEN_VERSION: 7.0.0
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install Ninja
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ninja-build
+
+      - name: Install latest CMake 4
+        run: |
+          python3 -m venv .ci-cmake
+          .ci-cmake/bin/python -m pip install --upgrade pip
+          .ci-cmake/bin/python -m pip install --upgrade "cmake>=4.0.0"
+          echo "$PWD/.ci-cmake/bin" >> "$GITHUB_PATH"
+
+      - name: Set up Emscripten
+        uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: ${{ env.EMSCRIPTEN_VERSION }}
+          actions-cache-folder: emsdk-cache
+
+      - name: Cache cross-built dependencies
+        uses: actions/cache@v5
+        with:
+          path: build-web/deps
+          key: web-deps-${{ env.EMSCRIPTEN_VERSION }}-${{ hashFiles('web/scripts/build-deps.sh', 'web/cmake/sdl3/**') }}
+
+      - name: Build engine
+        run: web/scripts/build-engine.sh
+
+      - name: Set up Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install web dependencies
+        working-directory: web
+        run: npm ci
+
+      - name: Unit tests
+        working-directory: web
+        run: npm test
+
+      - name: Production build
+        working-directory: web
+        run: npm run build
+
+      - name: Launcher end-to-end tests (production build on a sub-path)
+        working-directory: web
+        env:
+          E2E_DIST: 1
+        run: |
+          npx playwright install --with-deps chromium
+          npx playwright test --project=desktop --project=tablet
+
+      - name: Upload site
+        uses: actions/upload-artifact@v5
+        with:
+          name: vangers-web
+          path: web/dist

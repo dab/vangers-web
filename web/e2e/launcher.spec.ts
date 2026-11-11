@@ -4,14 +4,14 @@ import { fileURLToPath } from 'node:url';
 const fixture = (name: string) => fileURLToPath(new URL(`./fixtures/${name}`, import.meta.url));
 
 test('first visit asks for the game files', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('./');
   await expect(page.getByRole('heading', { name: 'Vangers' })).toBeVisible();
   await expect(page.getByText('runs right here in your browser')).toBeVisible();
   await expect(page.getByText('Where are the game files?')).toBeVisible();
 });
 
 test('the page never scrolls or overflows', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('./');
   await expect(page.locator('.launcher-body')).not.toBeEmpty();
   const overflow = await page.evaluate(() => ({
     x: document.documentElement.scrollWidth - innerWidth,
@@ -21,7 +21,7 @@ test('the page never scrolls or overflows', async ({ page }) => {
 });
 
 test('desktop offers a folder picker, tablets a zip picker', async ({ page, isMobile }) => {
-  await page.goto('/');
+  await page.goto('./');
   if (isMobile) {
     await expect(page.getByText('Choose a .zip of the game files')).toBeVisible();
     await expect(page.locator('input[webkitdirectory]')).toHaveCount(0);
@@ -33,7 +33,7 @@ test('desktop offers a folder picker, tablets a zip picker', async ({ page, isMo
 
 test('a wrong folder is rejected with the missing files named', async ({ page, isMobile }) => {
   test.skip(isMobile, 'folder picker is desktop only');
-  await page.goto('/');
+  await page.goto('./');
   await page.locator('input[data-pick="folder"]').setInputFiles(fixture('fake-data'));
   await expect(page.getByRole('alert')).toContainText('item.prm is missing');
   await page.locator('input[data-pick="folder"]').setInputFiles(fixture('wrong-folder'));
@@ -41,11 +41,23 @@ test('a wrong folder is rejected with the missing files named', async ({ page, i
 });
 
 test('a file that is not a zip is explained', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('./');
   await page.locator('input[data-pick="zip"]').setInputFiles({
     name: 'game.zip',
     mimeType: 'application/zip',
     buffer: Buffer.from('definitely not a zip'),
   });
   await expect(page.getByRole('alert')).toContainText('not a zip archive');
+});
+
+test('can be installed to the Home Screen with its icons', async ({ page, request }) => {
+  await page.goto('./');
+  const manifestHref = await page.locator('link[rel="manifest"]').evaluate((link: HTMLLinkElement) => link.href);
+  const manifest = await (await request.get(manifestHref)).json();
+  expect(manifest).toMatchObject({ name: 'Vangers', display: 'fullscreen', orientation: 'landscape' });
+  for (const icon of manifest.icons as { src: string }[]) {
+    expect((await request.get(new URL(icon.src, manifestHref).href)).ok()).toBe(true);
+  }
+  const touchIcon = await page.locator('link[rel="apple-touch-icon"]').evaluate((link: HTMLLinkElement) => link.href);
+  expect((await request.get(touchIcon)).ok()).toBe(true);
 });

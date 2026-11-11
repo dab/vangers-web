@@ -36,7 +36,7 @@ async function measure(page: Page, label: string, ms: number, during?: () => Pro
 }
 
 test('holds 60 quants per second in the menu and while driving', async ({ page }) => {
-  await page.goto('/?arg=-skipintro');
+  await page.goto('./?arg=-skipintro');
   await page.locator('input[data-pick="folder"]').setInputFiles(dataDir);
   await expect(page.getByRole('button', { name: 'Play' })).toBeVisible({ timeout: 240_000 });
   const bootStart = Date.now();

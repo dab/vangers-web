@@ -26,7 +26,7 @@ const measureFps = (page: Page, ms: number) =>
   );
 
 async function importData(page: Page) {
-  await page.goto('/?arg=-skipintro');
+  await page.goto('./?arg=-skipintro');
   await page.locator('input[data-pick="folder"]').setInputFiles(dataDir);
   await expect(page.getByRole('button', { name: 'Play' })).toBeVisible({ timeout: 240_000 });
 }
@@ -118,7 +118,7 @@ test.describe('on a tablet', () => {
   test('on-screen controls appear while driving and drive the car', async ({ page }) => {
     const { dataZipPath } = await import('./global-setup');
     await page.setViewportSize({ width: 1280, height: 720 });
-    await page.goto('/?arg=-skipintro');
+    await page.goto('./?arg=-skipintro');
     await page.locator('input[data-pick="zip"]').setInputFiles(dataZipPath);
     await page.getByRole('button', { name: 'Play' }).tap({ timeout: 240_000 });
     await expect.poll(() => sessionKind(page), { timeout: 120_000 }).toBe('running');
@@ -166,7 +166,7 @@ test.describe('on a tablet', () => {
   test('a tap on a menu item selects what is under the finger', async ({ page }) => {
     const { dataZipPath } = await import('./global-setup');
     await page.setViewportSize({ width: 1280, height: 720 });
-    await page.goto('/?arg=-skipintro');
+    await page.goto('./?arg=-skipintro');
     await page.locator('input[data-pick="zip"]').setInputFiles(dataZipPath);
     await page.getByRole('button', { name: 'Play' }).tap({ timeout: 240_000 });
     await expect.poll(() => sessionKind(page), { timeout: 120_000 }).toBe('running');
@@ -185,7 +185,7 @@ test.describe('on a tablet', () => {
 
   test('imports a Finder-made zip and suggests landscape until dismissed', async ({ page }) => {
     const { dataZipPath } = await import('./global-setup');
-    await page.goto('/?arg=-skipintro');
+    await page.goto('./?arg=-skipintro');
     await page.locator('input[data-pick="zip"]').setInputFiles(dataZipPath);
     await expect(page.getByRole('button', { name: 'Play' })).toBeVisible({ timeout: 240_000 });
     await page.getByRole('button', { name: 'Play' }).tap();

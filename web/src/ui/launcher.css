@@ -410,3 +410,13 @@ summary:focus-visible {
   background: color-mix(in srgb, var(--bile) 45%, transparent);
   opacity: 1;
 }
+
+.fineprint {
+  margin: 1.5rem 0 0;
+  color: var(--olive);
+  font-size: 0.8125rem;
+}
+
+.fineprint a {
+  color: inherit;
+}

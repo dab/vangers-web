@@ -32,7 +32,9 @@ const whereToFind = (touch: boolean) => `
     ${
       touch
         ? `<p>On a computer, compress the <code>data</code> folder from your Vangers installation into a .zip
-           and save it to Files or iCloud Drive. Then choose that .zip here.</p>`
+           and save it to Files or iCloud Drive. Then choose that .zip here.</p>
+           <p>Playing from the Home Screen? Open Vangers from its Home Screen icon before choosing the .zip:
+           the Home Screen app keeps its own copy of the game files and saves.</p>`
         : ''
     }
     <p>Use the <code>data</code> folder inside the game folder:</p>

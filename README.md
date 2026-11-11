@@ -38,6 +38,12 @@ http://www.gog.com/game/vangers
 
 You can see the [wiki pages](https://github.com/KranX/Vangers/wiki) to learn how to build this project.
 
+## Playing in the browser
+
+A WebAssembly build runs the game in desktop and tablet browsers using the
+files from your own copy. See [`web/README.md`](web/README.md) for playing,
+building and deploying it.
+
 ## User settings
 
 Vangers stores user preferences and input bindings in the UTF-8
