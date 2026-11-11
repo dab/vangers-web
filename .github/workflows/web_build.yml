@@ -5,6 +5,7 @@ on:
     branches:
       - master
       - alpha
+      - web-port
   pull_request:
     branches:
       - master
@@ -20,7 +21,7 @@ concurrency:
 
 jobs:
   build:
-    if: ${{ github.repository == 'KranX/Vangers' }}
+    if: ${{ github.repository == 'KranX/Vangers' || github.repository == 'dab/vangers-web' }}
     runs-on: ubuntu-24.04
     env:
       EMSCRIPTEN_VERSION: 7.0.0
