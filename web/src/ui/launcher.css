@@ -227,3 +227,74 @@ summary:focus-visible {
     transition: none;
   }
 }
+
+.game-chrome .chrome-button {
+  position: fixed;
+  top: max(0.75rem, env(safe-area-inset-top));
+  right: max(0.75rem, env(safe-area-inset-right));
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0;
+  border: 1px solid color-mix(in srgb, var(--olive) 60%, transparent);
+  border-radius: 0.75rem 0.3rem 0.75rem 0.3rem;
+  background: color-mix(in srgb, var(--slab) 80%, transparent);
+  color: var(--bone);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.game-chrome.awake .chrome-button,
+.game-chrome .chrome-button:focus-visible {
+  opacity: 0.85;
+}
+
+.game-chrome .chrome-button[hidden] {
+  display: none;
+}
+
+.game-chrome .chrome-button:focus-visible {
+  outline: 3px solid var(--bone);
+  outline-offset: 2px;
+}
+
+.chrome-button svg {
+  width: 1.5rem;
+  height: 1.5rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.rotate-hint {
+  position: fixed;
+  left: 50%;
+  bottom: max(1.5rem, env(safe-area-inset-bottom));
+  z-index: 2;
+  width: min(22rem, calc(100% - 2rem));
+  padding: 1rem 1.25rem;
+  transform: translateX(-50%);
+  border: 1px solid var(--bile);
+  border-radius: 1rem 0.4rem 1rem 0.4rem;
+  background: color-mix(in srgb, var(--slab) 94%, transparent);
+  text-align: center;
+}
+
+.rotate-hint[hidden] {
+  display: none;
+}
+
+.rotate-hint p {
+  margin: 0 0 0.5rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .game-chrome .chrome-button {
+    transition: none;
+  }
+}

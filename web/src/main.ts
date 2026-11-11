@@ -6,6 +6,7 @@ import { startEngine } from './infrastructure/engine-host';
 import { filesFromDrop, filesFromPicker, filesSource } from './infrastructure/files-source';
 import { IdbGameDataStore } from './infrastructure/idb-game-data-store';
 import { zipSource } from './infrastructure/zip-source';
+import { mountGameChrome } from './ui/game-chrome';
 import { bindLauncher, renderLauncher } from './ui/launcher';
 import { describeImportFailure } from './ui/messages';
 
@@ -69,6 +70,7 @@ async function play() {
       onExit: () => location.reload(),
     }, engineArgs);
     dispatch({ type: 'engine-running' });
+    mountGameChrome(canvas, view.touch);
     canvas.focus();
   } catch (error) {
     dispatch({ type: 'engine-crashed', reason: error instanceof Error ? error.message : String(error) });

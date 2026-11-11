@@ -1,17 +1,32 @@
-import { Unzip, UnzipInflate, type UnzipFile } from 'fflate';
-import { normalizePath, type SourceFile } from '../domain/game-data/game-data-manifest';
-import type { ImportSource, SourceEntry } from '../domain/game-data/import-source';
+import { inflateSync } from 'fflate';
+import { normalizePath } from '../domain/game-data/game-data-manifest';
+import type { ImportSource } from '../domain/game-data/import-source';
 
 const EOCD_SIGNATURE = 0x06054b50;
 const CENTRAL_SIGNATURE = 0x02014b50;
+const LOCAL_SIGNATURE = 0x04034b50;
 const EOCD_MIN = 22;
 const EOCD_SEARCH = EOCD_MIN + 0xffff;
+const STORED = 0;
+const DEFLATED = 8;
+
+interface ZipEntry {
+  path: string;
+  size: number;
+  compressedSize: number;
+  method: number;
+  localOffset: number;
+}
 
 const notZip = () => new Error('This file is not a zip archive.');
 
-async function readCentralDirectory(blob: Blob): Promise<SourceFile[]> {
+const view = async (blob: Blob, start: number, end?: number) => new DataView(await blob.slice(start, end).arrayBuffer());
+
+// Random access through the central directory: sizes there are always correct, unlike local headers
+// in archives made by macOS Finder, which defer them to data descriptors.
+async function readCentralDirectory(blob: Blob): Promise<ZipEntry[]> {
   const tailStart = Math.max(0, blob.size - EOCD_SEARCH);
-  const tail = new DataView(await blob.slice(tailStart).arrayBuffer());
+  const tail = await view(blob, tailStart);
   let eocd = -1;
   for (let i = tail.byteLength - EOCD_MIN; i >= 0; i--) {
     if (tail.getUint32(i, true) === EOCD_SIGNATURE) {
@@ -25,60 +40,48 @@ async function readCentralDirectory(blob: Blob): Promise<SourceFile[]> {
   const offset = tail.getUint32(eocd + 16, true);
   if (size === 0xffffffff || offset === 0xffffffff) throw new Error('ZIP64 archives are not supported.');
 
-  const directory = new DataView(await blob.slice(offset, offset + size).arrayBuffer());
+  const directory = await view(blob, offset, offset + size);
   const decoder = new TextDecoder();
-  const files: SourceFile[] = [];
+  const entries: ZipEntry[] = [];
   for (let p = 0; p + 46 <= directory.byteLength; ) {
     if (directory.getUint32(p, true) !== CENTRAL_SIGNATURE) throw notZip();
-    const uncompressed = directory.getUint32(p + 24, true);
     const nameLength = directory.getUint16(p + 28, true);
     const extraLength = directory.getUint16(p + 30, true);
     const commentLength = directory.getUint16(p + 32, true);
     const name = decoder.decode(new Uint8Array(directory.buffer, directory.byteOffset + p + 46, nameLength));
-    if (!name.endsWith('/')) files.push({ path: normalizePath(name), size: uncompressed });
+    if (!name.endsWith('/')) {
+      entries.push({
+        path: normalizePath(name),
+        method: directory.getUint16(p + 10, true),
+        compressedSize: directory.getUint32(p + 20, true),
+        size: directory.getUint32(p + 24, true),
+        localOffset: directory.getUint32(p + 42, true),
+      });
+    }
     p += 46 + nameLength + extraLength + commentLength;
   }
-  return files;
+  return entries;
 }
 
-function concat(chunks: Uint8Array[]): Uint8Array {
-  if (chunks.length === 1) return chunks[0]!;
-  const out = new Uint8Array(chunks.reduce((n, c) => n + c.length, 0));
-  let offset = 0;
-  for (const chunk of chunks) {
-    out.set(chunk, offset);
-    offset += chunk.length;
-  }
-  return out;
+async function readEntry(blob: Blob, entry: ZipEntry): Promise<Uint8Array> {
+  const local = await view(blob, entry.localOffset, entry.localOffset + 30);
+  if (local.getUint32(0, true) !== LOCAL_SIGNATURE) throw notZip();
+  const start = entry.localOffset + 30 + local.getUint16(26, true) + local.getUint16(28, true);
+  const body = new Uint8Array(await blob.slice(start, start + entry.compressedSize).arrayBuffer());
+  if (entry.method === STORED) return body;
+  if (entry.method === DEFLATED) return inflateSync(body, { out: new Uint8Array(entry.size) });
+  throw new Error(`${entry.path} uses an unsupported zip compression method (${entry.method}).`);
 }
 
-async function* streamEntries(blob: Blob, wanted: ReadonlySet<string>, chunkSize: number) {
-  const ready: SourceEntry[] = [];
-  let failure: unknown = null;
-  const unzip = new Unzip((file: UnzipFile) => {
-    const path = normalizePath(file.name);
-    if (!wanted.has(path)) return;
-    const chunks: Uint8Array[] = [];
-    file.ondata = (error, chunk, final) => {
-      if (error) failure = error;
-      else chunks.push(chunk);
-      if (final && !error) ready.push({ path, data: concat(chunks) });
-    };
-    file.start();
-  });
-  unzip.register(UnzipInflate);
-
-  for (let offset = 0; offset < blob.size; offset += chunkSize) {
-    const chunk = new Uint8Array(await blob.slice(offset, offset + chunkSize).arrayBuffer());
-    unzip.push(chunk, offset + chunkSize >= blob.size);
-    if (failure) throw failure;
-    while (ready.length) yield ready.shift()!;
-  }
-}
-
-export function zipSource(blob: Blob, chunkSize = 4 << 20): ImportSource {
+export function zipSource(blob: Blob): ImportSource {
+  let directory: Promise<ZipEntry[]> | null = null;
+  const entries = () => (directory ??= readCentralDirectory(blob));
   return {
-    list: () => readCentralDirectory(blob),
-    entries: (wanted) => streamEntries(blob, wanted, chunkSize),
+    list: async () => (await entries()).map(({ path, size }) => ({ path, size })),
+    async *entries(wanted) {
+      for (const entry of await entries()) {
+        if (wanted.has(entry.path)) yield { path: entry.path, data: await readEntry(blob, entry) };
+      }
+    },
   };
 }

@@ -306,8 +306,11 @@ void XGR_Screen::set_resolution(int width, int height) {
 	}
 
 	destroy_surfaces();
+#ifndef __EMSCRIPTEN__
+	// In the browser the page owns the canvas size; SDL letterboxes the game into it.
 	if (!SDL_SetWindowSize(sdlWindow, width, height))
 		ErrH.Abort(SDL_GetError(), XERR_USER, 0);
+#endif
 	create_surfaces(width, height);
 }
 
@@ -343,6 +346,7 @@ void XGR_Screen::set_fullscreen(bool fullscreen) {
 			std::cerr << warning << std::endl;
 			ErrH.Log(warning);
 		}
+#ifndef __EMSCRIPTEN__
 		if (!fullscreen) {
 			if (!SDL_SetWindowSize(sdlWindow, XGR_MAXX, XGR_MAXY))
 				ErrH.Abort(SDL_GetError(), XERR_USER, 0);
@@ -351,6 +355,7 @@ void XGR_Screen::set_fullscreen(bool fullscreen) {
 		} else {
 			SDL_SetWindowPosition(sdlWindow, 0, 0);
 		}
+#endif
 		XGR_FULL_SCREEN = fullscreen;
 		SDL_HideCursor();
 	}
