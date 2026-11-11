@@ -8,6 +8,7 @@ import { filesFromDrop, filesFromPicker, filesSource } from './infrastructure/fi
 import { IdbGameDataStore } from './infrastructure/idb-game-data-store';
 import { zipSource } from './infrastructure/zip-source';
 import { mountGameChrome } from './ui/game-chrome';
+import { mountTouchControls } from './ui/touch-controls';
 import { bindLauncher, renderLauncher } from './ui/launcher';
 import { describeImportFailure } from './ui/messages';
 
@@ -68,13 +69,15 @@ async function play() {
   if (!manifest) return dispatch({ type: 'data-forgotten' });
   dispatch({ type: 'play' });
   try {
-    await startEngine(canvas, store, manifest, {
+    const engine = await startEngine(canvas, store, manifest, {
       onProgress: (doneBytes) => dispatch({ type: 'boot-progress', doneBytes }),
       onCrash: (reason) => dispatch({ type: 'engine-crashed', reason }),
       onExit: () => location.reload(),
     }, engineArgs, audio.context);
     dispatch({ type: 'engine-running' });
+    (window as unknown as { vangersEngine: unknown }).vangersEngine = engine;
     mountGameChrome(canvas, view.touch);
+    if (view.touch) mountTouchControls(engine);
     canvas.focus();
   } catch (error) {
     dispatch({ type: 'engine-crashed', reason: error instanceof Error ? error.message : String(error) });

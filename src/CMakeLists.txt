@@ -92,7 +92,10 @@ SET(vangers_SRCS
 
 IF(EMSCRIPTEN)
 	LIST(REMOVE_ITEM vangers_SRCS xsocket.cpp)
-	LIST(APPEND vangers_SRCS platform/web/xsocket_web.cpp)
+	LIST(APPEND vangers_SRCS
+		platform/web/xsocket_web.cpp
+		platform/web/web_exports.cpp
+	)
 ENDIF()
 
 if (ANDROID)

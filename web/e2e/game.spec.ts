@@ -6,6 +6,8 @@ const dataDir = process.env.VANGERS_DATA_DIR!;
 const shots = process.env.VANGERS_SHOTS_DIR ?? 'test-results';
 
 const sessionKind = (page: Page) => page.evaluate(() => (window as any).vangersSession?.kind as string);
+const isDriving = (page: Page) => page.evaluate(() => Boolean((window as any).vangersEngine?.isDriving()));
+const camera = (page: Page) => page.evaluate(() => (window as any).vangersEngine.camera() as [number, number]);
 
 const measureFps = (page: Page, ms: number) =>
   page.evaluate(
@@ -112,6 +114,74 @@ test('the 4:3 menu keeps its shape on wide and tall windows', async ({ page }) =
 
 test.describe('on a tablet', () => {
   test.use({ viewport: { width: 744, height: 1133 }, hasTouch: true, isMobile: true });
+
+  test('on-screen controls appear while driving and drive the car', async ({ page }) => {
+    const { dataZipPath } = await import('./global-setup');
+    await page.setViewportSize({ width: 1280, height: 720 });
+    await page.goto('/?arg=-skipintro');
+    await page.locator('input[data-pick="zip"]').setInputFiles(dataZipPath);
+    await page.getByRole('button', { name: 'Play' }).tap({ timeout: 240_000 });
+    await expect.poll(() => sessionKind(page), { timeout: 120_000 }).toBe('running');
+    await page.waitForTimeout(8000);
+    await expect(page.getByRole('button', { name: 'Gas' })).toBeHidden();
+
+    // New game, past Prehistory into the first escave, then out of its exit into the world.
+    await expect
+      .poll(
+        async () => {
+          await page.touchscreen.tap(444, 54);
+          await page.waitForTimeout(1500);
+          return onPrehistoryPage(page);
+        },
+        { timeout: 60_000, intervals: [500] },
+      )
+      .toBe(true);
+    await page.touchscreen.tap(640, 513);
+    await page.waitForTimeout(8000);
+    await expect
+      .poll(
+        async () => {
+          await page.touchscreen.tap(225, 80); // "Up to world..."
+          await page.waitForTimeout(3000);
+          return isDriving(page);
+        },
+        { timeout: 90_000, intervals: [1000] },
+      )
+      .toBe(true);
+    await page.waitForTimeout(3000);
+
+    const gas = page.getByRole('button', { name: 'Gas' });
+    await expect(gas).toBeVisible();
+    const before = await camera(page);
+    const box = (await gas.boundingBox())!;
+    const at = { pointerId: 7, pointerType: 'touch', isPrimary: true, clientX: box.x + 10, clientY: box.y + 10 };
+    await gas.dispatchEvent('pointerdown', at);
+    await page.waitForTimeout(3000);
+    await gas.dispatchEvent('pointerup', at);
+    const after = await camera(page);
+    await page.screenshot({ path: `${shots}/touch-driving.png` });
+    expect(Math.hypot(after[0] - before[0], after[1] - before[1])).toBeGreaterThan(30);
+  });
+
+  test('a tap on a menu item selects what is under the finger', async ({ page }) => {
+    const { dataZipPath } = await import('./global-setup');
+    await page.setViewportSize({ width: 1280, height: 720 });
+    await page.goto('/?arg=-skipintro');
+    await page.locator('input[data-pick="zip"]').setInputFiles(dataZipPath);
+    await page.getByRole('button', { name: 'Play' }).tap({ timeout: 240_000 });
+    await expect.poll(() => sessionKind(page), { timeout: 120_000 }).toBe('running');
+    await page.waitForTimeout(8000);
+    await expect
+      .poll(
+        async () => {
+          await page.touchscreen.tap(444, 54);
+          await page.waitForTimeout(1500);
+          return onPrehistoryPage(page);
+        },
+        { timeout: 30_000, intervals: [500] },
+      )
+      .toBe(true);
+  });
 
   test('imports a Finder-made zip and suggests landscape until dismissed', async ({ page }) => {
     const { dataZipPath } = await import('./global-setup');

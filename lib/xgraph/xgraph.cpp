@@ -2880,9 +2880,11 @@ void XGR_MouseFnc(SDL_Event *p) {
 
 	// Mouse motion
 	if (p->type == SDL_EVENT_MOUSE_MOTION) {
+#ifndef __EMSCRIPTEN__
 		if (p->motion.which == SDL_TOUCH_MOUSEID) {
 			return;
 		}
+#endif
 		if (!SDL_ConvertEventToRenderCoordinates(XGR_Obj.get_renderer(), p))
 			return;
 		// std::cout<<"x:"<<p->motion.x<<" y:"<<p->motion.y<<std::endl;

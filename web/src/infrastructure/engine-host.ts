@@ -24,6 +24,14 @@ interface VangersModule {
   IDBFS: unknown;
   callMain(args: string[]): void;
   vangersMedia?: OnDemandFiles;
+  _web_is_driving(): number;
+  _web_camera_x(): number;
+  _web_camera_y(): number;
+}
+
+export interface RunningEngine {
+  isDriving(): boolean;
+  camera(): [number, number];
 }
 
 type CreateVangers = (options: Record<string, unknown>) => Promise<VangersModule>;
@@ -109,7 +117,7 @@ export async function startEngine(
   callbacks: EngineCallbacks,
   args: string[] = [],
   audioContext: unknown = null,
-): Promise<void> {
+): Promise<RunningEngine> {
   const module = await loadModule(canvas, callbacks, audioContext);
   createDirectories(module.FS, manifest);
   await preloadFiles(module.FS, store, manifest, callbacks.onProgress);
@@ -117,4 +125,8 @@ export async function startEngine(
   module.vangersMedia = new OnDemandFiles(module.FS, DATA_DIR, (gamePath) => store.read(gamePath));
   module.FS.chdir(DATA_DIR);
   module.callMain(args);
+  return {
+    isDriving: () => module._web_is_driving() === 1,
+    camera: () => [module._web_camera_x(), module._web_camera_y()],
+  };
 }
