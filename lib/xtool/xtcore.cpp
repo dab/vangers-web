@@ -11,6 +11,10 @@
 #	include <locale.h>
 #endif
 
+#ifdef __EMSCRIPTEN__
+#	include "web_frame.h"
+#endif
+
 int __internal_argc;
 char **__internal_argv;
 
@@ -206,6 +210,9 @@ int main(int argc, char *argv[]) {
 	xtRTO_Log.open("xt_rto_w.log", XS_OUT);
 #endif
 
+#ifdef __EMSCRIPTEN__
+	FramePacer pacer;
+#endif
 	while (XObj) {
 		XObj->Init(prevID);
 		prevID = id;
@@ -213,7 +220,14 @@ int main(int argc, char *argv[]) {
 
 		clockCnt = clocki();
 		clockCntGlobal = clockCnt;
+#ifdef __EMSCRIPTEN__
+		pacer.reset();
+#endif
 		while (!id) {
+#ifdef __EMSCRIPTEN__
+			web_wait_for_quant(pacer, XObj->Timer);
+			clockCnt = clocki();
+#endif
 			if (XObj->Timer) {
 				const Uint64 frameTime = static_cast<Uint64>(XObj->Timer);
 				id = XObj->Quant();
@@ -228,7 +242,9 @@ int main(int argc, char *argv[]) {
 
 				if (clockDelta < frameTime) {
 					// std::cout<<"clockDelta:"<<clockDelta<<" Timer:"<<XObj->Timer<<std::endl;
+#ifndef __EMSCRIPTEN__
 					SDL_Delay(static_cast<Uint32>(frameTime - clockDelta));
+#endif
 				} else {
 					std::cout << "Strange deltas clockDelta:" << clockDelta
 							  << " Timer:" << XObj->Timer << std::endl;

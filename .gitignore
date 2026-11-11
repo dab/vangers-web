@@ -47,6 +47,7 @@ CMakeSettings.json
 /ffmpeg
 /build
 /build_*/
+/build-web/
 /clunk
 /vangers
 /external/

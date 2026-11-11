@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <iostream>
 
+#ifndef __EMSCRIPTEN__
 char *strupr(char *string) {
 	char *s;
 
@@ -11,6 +12,7 @@ char *strupr(char *string) {
 	}
 	return string;
 }
+#endif
 
 /**
 

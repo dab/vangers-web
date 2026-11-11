@@ -1,5 +1,6 @@
 SET(xtool_SRCS
 	xtcore.cpp
+	frame_pacer.cpp
 	port.cpp
 	xerrhead.cpp
 	xbuffer/xbcnvin.cpp
@@ -22,6 +23,10 @@ SET(xtool_SRCS
 	iniparser/iniparser.c
 	lang.cpp
 )
+
+IF(EMSCRIPTEN)
+	LIST(APPEND xtool_SRCS web_frame.cpp)
+ENDIF()
 
 IF(DXSTREAM_DEBUG)
 	ADD_DEFINITIONS(-DXSTREAM_DEBUG)

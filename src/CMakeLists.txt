@@ -90,6 +90,11 @@ SET(vangers_SRCS
 	${WINDOWS_RES}
         actint/layout.h)
 
+IF(EMSCRIPTEN)
+	LIST(REMOVE_ITEM vangers_SRCS xsocket.cpp)
+	LIST(APPEND vangers_SRCS platform/web/xsocket_web.cpp)
+ENDIF()
+
 if (ANDROID)
 	ADD_LIBRARY(vangers STATIC ${vangers_SRCS}
 		$<TARGET_OBJECTS:xtool>
@@ -117,7 +122,7 @@ function(CONFIGURE_VANGERS_TARGET target_name)
 	TARGET_LINK_LIBRARIES(${target_name} PRIVATE
 		vangers_settings
 		SDL3::SDL3
-		SDL3_net::SDL3_net
+		$<$<NOT:$<BOOL:${EMSCRIPTEN}>>:SDL3_net::SDL3_net>
 		Clunk::Clunk
 		${OGG_LIBRARY}
 		${VORBIS_LIBRARY}
@@ -140,7 +145,11 @@ endfunction()
 
 CONFIGURE_VANGERS_TARGET(vangers)
 
-if (NOT ANDROID)
+IF(EMSCRIPTEN)
+	INCLUDE(${PROJECT_SOURCE_DIR}/web/cmake/emscripten-target.cmake)
+ENDIF()
+
+if (NOT ANDROID AND NOT EMSCRIPTEN)
 	ADD_EXECUTABLE(vangers_iscreen_compiler EXCLUDE_FROM_ALL
 		${vangers_SRCS}
 		iscreen/script_compiler.cpp

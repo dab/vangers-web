@@ -3,7 +3,11 @@
 
 #include <string>
 
-#include <SDL3_net/SDL_net.h>
+#ifdef __EMSCRIPTEN__
+struct NET_StreamSocket;
+#else
+#	include <SDL3_net/SDL_net.h>
+#endif
 
 int XSocketInit(int ErrHUsed = 1);
 void XSocketFinit();

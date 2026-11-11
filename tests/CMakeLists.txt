@@ -137,3 +137,14 @@ TARGET_INCLUDE_DIRECTORIES(rle_test PRIVATE
 TARGET_LINK_LIBRARIES(rle_test PRIVATE SDL3::SDL3)
 
 ADD_TEST(NAME rle_roundtrip COMMAND rle_test)
+
+ADD_EXECUTABLE(frame_pacer_test
+	frame_pacer_test.cpp
+	../lib/xtool/frame_pacer.cpp
+)
+
+TARGET_INCLUDE_DIRECTORIES(frame_pacer_test PRIVATE
+	${PROJECT_SOURCE_DIR}/lib/xtool
+)
+
+ADD_TEST(NAME frame_pacer COMMAND frame_pacer_test)
