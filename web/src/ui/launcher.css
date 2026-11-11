@@ -1,0 +1,229 @@
+:root {
+  --ground: #1c1f12;
+  --slab: #2a2c18;
+  --bone: #e3d9b4;
+  --bile: #d6b33c;
+  --rust: #b4472a;
+  --olive: #8a8a5c;
+  --display: 'Caveat Brush', 'Comic Sans MS', cursive;
+  --text: 'Alegreya Sans', 'Gill Sans', 'Trebuchet MS', sans-serif;
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--ground);
+  color: var(--bone);
+  font: 1.0625rem/1.5 var(--text);
+  -webkit-text-size-adjust: 100%;
+  overscroll-behavior: none;
+}
+
+#canvas {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  background: #000;
+  outline: none;
+  touch-action: none;
+}
+
+.launcher {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  align-items: center;
+  padding: max(1rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right))
+    max(1rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left));
+  overflow-y: auto;
+  background:
+    radial-gradient(120% 90% at 85% 40%, transparent 30%, var(--ground) 75%),
+    var(--backdrop, none) center / cover no-repeat,
+    var(--ground);
+}
+
+.launcher[hidden] {
+  display: none;
+}
+
+.launcher-panel {
+  width: min(34rem, 100%);
+  margin-left: clamp(0rem, 8vw, 8rem);
+  padding: 2rem 2rem 1.5rem;
+  background: color-mix(in srgb, var(--slab) 92%, transparent);
+  border: 1px solid color-mix(in srgb, var(--olive) 45%, transparent);
+  border-radius: 1.25rem 0.4rem 1.5rem 0.6rem;
+  box-shadow: 0 1.5rem 3rem rgb(8 9 4 / 55%);
+}
+
+.wordmark {
+  margin: 0 0 0.75rem;
+  font: 400 clamp(4rem, 13vw, 6.5rem) / 0.85 var(--display);
+  color: var(--bile);
+  letter-spacing: 0.01em;
+  text-shadow:
+    0 0.05em 0 var(--rust),
+    0 0.12em 0.3em rgb(0 0 0 / 60%);
+  transform: rotate(-2deg);
+  transform-origin: left bottom;
+}
+
+.lede {
+  margin: 0 0 1.5rem;
+  max-width: 34ch;
+  font-size: 1.1875rem;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin: 0 0 1rem;
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  min-height: 3rem;
+  padding: 0.5rem 1.25rem;
+  border: 1px solid var(--olive);
+  border-radius: 0.75rem 0.3rem 0.75rem 0.3rem;
+  background: transparent;
+  color: var(--bone);
+  font: 500 1.0625rem var(--text);
+  cursor: pointer;
+}
+
+.button:hover {
+  border-color: var(--bile);
+}
+
+.button.primary {
+  border-color: var(--bile);
+  background: var(--bile);
+  color: #23200a;
+  font-weight: 700;
+}
+
+.button.primary:hover {
+  background: #e4c452;
+}
+
+.button.play {
+  min-width: 11rem;
+  justify-content: center;
+  font: 400 2.25rem/1 var(--display);
+}
+
+.button:focus-within,
+.button:focus-visible,
+.link:focus-visible,
+summary:focus-visible {
+  outline: 3px solid var(--bone);
+  outline-offset: 3px;
+}
+
+.link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--bile);
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  cursor: pointer;
+}
+
+.note,
+.status {
+  margin: 0.5rem 0 0;
+  color: var(--olive);
+  font-size: 0.9375rem;
+}
+
+.status {
+  color: var(--bone);
+}
+
+.error {
+  margin: 1rem 0 0;
+  padding: 0.75rem 1rem;
+  border-left: 4px solid var(--rust);
+  background: color-mix(in srgb, var(--rust) 18%, transparent);
+}
+
+.progress {
+  height: 0.875rem;
+  margin-top: 0.5rem;
+  border-radius: 1rem;
+  background: #16180c;
+  border: 1px solid color-mix(in srgb, var(--olive) 50%, transparent);
+  overflow: hidden;
+}
+
+.progress-fill {
+  width: var(--fill);
+  height: 100%;
+  background: linear-gradient(90deg, var(--rust), var(--bile));
+  transition: width 0.2s linear;
+}
+
+.help {
+  margin-top: 1.5rem;
+  font-size: 0.9375rem;
+}
+
+.help summary {
+  cursor: pointer;
+  color: var(--bile);
+}
+
+.help dl {
+  margin: 0.5rem 0 0;
+}
+
+.help dt {
+  margin-top: 0.5rem;
+  color: var(--olive);
+}
+
+.help dd {
+  margin: 0;
+}
+
+.help code {
+  word-break: break-all;
+  font-size: 0.875rem;
+}
+
+.hint {
+  display: block;
+  color: var(--olive);
+}
+
+.launcher.dragging .launcher-panel {
+  border-color: var(--bile);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--bile) 35%, transparent);
+}
+
+@media (max-width: 480px) {
+  .launcher-panel {
+    margin-left: 0;
+    padding: 1.5rem 1.25rem 1.25rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .progress-fill {
+    transition: none;
+  }
+}

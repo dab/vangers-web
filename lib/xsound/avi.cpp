@@ -17,6 +17,10 @@ extern "C" {
 #include "xglobal.h"
 #include "xgraph.h"
 
+#ifdef __EMSCRIPTEN__
+#	include "web_media.h"
+#endif
+
 /* ----------------------------- STRUCT SECTION ----------------------------- */
 
 /* --------------------------- PROTOTYPE SECTION ---------------------------- */
@@ -52,6 +56,9 @@ AVIFile::AVIFile(char *aviname, int initFlags, int channel): AVIFile() {
 
 int AVIFile::open(char *aviname, int initFlags, int channel) {
 	filename = aviname;
+#ifdef __EMSCRIPTEN__
+	web_media_acquire(aviname);
+#endif
 	flags = initFlags;
 	audioChannel = channel;
 
@@ -373,6 +380,9 @@ void AVIFile::close(void) {
 		SDL_DestroyMutex(avCriticalSection);
 		avCriticalSection = NULL;
 	}
+#ifdef __EMSCRIPTEN__
+	web_media_release(filename.c_str());
+#endif
 }
 
 int AVIFile::isFinished(void) const {

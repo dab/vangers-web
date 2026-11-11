@@ -8,10 +8,12 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "e2e": "playwright test"
+    "e2e": "playwright test",
+    "build:engine": "scripts/build-engine.sh"
   },
   "devDependencies": {
     "@playwright/test": "^1.65.0",
+    "@types/node": "^26.6.6",
     "fake-indexeddb": "^6.2.8",
     "jsdom": "^29.1.1",
     "typescript": "^7.0.2",

@@ -9,6 +9,10 @@ SET(xsound_SRCS
 	ogg_stream.cpp
 )
 
+IF(EMSCRIPTEN)
+	LIST(APPEND xsound_SRCS web_media.cpp)
+ENDIF()
+
 
 if (ANDROID)
 	ADD_LIBRARY(xsound OBJECT ${xsound_SRCS})
