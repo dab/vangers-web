@@ -85,7 +85,21 @@ jobs:
           npx playwright test --project=desktop --project=tablet
 
       - name: Upload site
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-pages-artifact@v4
         with:
-          name: vangers-web
           path: web/dist
+
+  deploy:
+    needs: build
+    if: ${{ github.repository == 'dab/vangers-web' && github.event_name == 'push' && github.ref == 'refs/heads/web-port' }}
+    runs-on: ubuntu-24.04
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
