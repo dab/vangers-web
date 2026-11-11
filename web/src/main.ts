@@ -3,6 +3,7 @@ import { importGameData } from './application/import-game-data';
 import type { ImportSource } from './domain/game-data/import-source';
 import { initialSession, transition, type Session, type SessionEvent } from './domain/session/session';
 import { startEngine } from './infrastructure/engine-host';
+import { GameAudio } from './infrastructure/game-audio';
 import { filesFromDrop, filesFromPicker, filesSource } from './infrastructure/files-source';
 import { IdbGameDataStore } from './infrastructure/idb-game-data-store';
 import { zipSource } from './infrastructure/zip-source';
@@ -60,6 +61,9 @@ async function importFrom(source: ImportSource) {
 }
 
 async function play() {
+  const audio = GameAudio.unlock();
+  document.addEventListener('visibilitychange', () => void audio.visibilityChanged(document.hidden));
+  (window as unknown as { vangersAudio: unknown }).vangersAudio = audio.context;
   const manifest = await store.loadManifest();
   if (!manifest) return dispatch({ type: 'data-forgotten' });
   dispatch({ type: 'play' });
@@ -68,7 +72,7 @@ async function play() {
       onProgress: (doneBytes) => dispatch({ type: 'boot-progress', doneBytes }),
       onCrash: (reason) => dispatch({ type: 'engine-crashed', reason }),
       onExit: () => location.reload(),
-    }, engineArgs);
+    }, engineArgs, audio.context);
     dispatch({ type: 'engine-running' });
     mountGameChrome(canvas, view.touch);
     canvas.focus();

@@ -36,7 +36,11 @@ export interface EngineCallbacks {
 
 const engineUrl = (file: string) => `${import.meta.env.BASE_URL}engine/${file}`;
 
-async function loadModule(canvas: HTMLCanvasElement, callbacks: EngineCallbacks): Promise<VangersModule> {
+async function loadModule(
+  canvas: HTMLCanvasElement,
+  callbacks: EngineCallbacks,
+  audioContext: unknown,
+): Promise<VangersModule> {
   // Native import(): Vite would otherwise rewrite it and refuse to serve the prebuilt engine from public/.
   const nativeImport = new Function('url', 'return import(url)') as (url: string) => Promise<unknown>;
   const { default: createVangers } = (await nativeImport(engineUrl('vangers.mjs'))) as {
@@ -44,6 +48,7 @@ async function loadModule(canvas: HTMLCanvasElement, callbacks: EngineCallbacks)
   };
   return createVangers({
     canvas,
+    SDL3: audioContext ? { audioContext } : undefined,
     locateFile: (path: string) => engineUrl(path),
     print: (text: string) => console.log(text),
     printErr: (text: string) => console.warn(text),
@@ -103,8 +108,9 @@ export async function startEngine(
   manifest: GameDataManifest,
   callbacks: EngineCallbacks,
   args: string[] = [],
+  audioContext: unknown = null,
 ): Promise<void> {
-  const module = await loadModule(canvas, callbacks);
+  const module = await loadModule(canvas, callbacks, audioContext);
   createDirectories(module.FS, manifest);
   await preloadFiles(module.FS, store, manifest, callbacks.onProgress);
   await mountPersistentStorage(module, store, manifest);

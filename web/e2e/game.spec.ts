@@ -42,9 +42,22 @@ async function gameClick(page: Page, x: number, y: number) {
   await page.mouse.click(x, y);
 }
 
+// The Prehistory page has a red title where the main menu is green (1280x720 letterboxed).
+async function onPrehistoryPage(page: Page) {
+  const png = PNG.sync.read(await page.screenshot({ scale: 'css' }));
+  let red = 0;
+  for (let y = 40; y < 80; y++) {
+    for (let x = 500; x < 760; x++) {
+      const i = (y * png.width + x) * 4;
+      if (png.data[i]! > 150 && png.data[i + 1]! < 80) red++;
+    }
+  }
+  return red > 300;
+}
+
 // Share of near-black pixels inside a rectangle of a page screenshot.
 async function darkShare(page: Page, x: number, y: number, w: number, h: number) {
-  const png = PNG.sync.read(await page.screenshot());
+  const png = PNG.sync.read(await page.screenshot({ scale: 'css' }));
   let dark = 0;
   for (let row = y; row < y + h; row++) {
     for (let col = x; col < x + w; col++) {
@@ -161,10 +174,21 @@ test('saves and settings survive a page reload', async ({ page }) => {
 
   // 4:3 menu letterboxed into 1280x720: content spans x 160..1120.
   // New game, then past the Prehistory page into the first escave, which autosaves on entry.
-  await gameClick(page, 444, 54);
-  await page.waitForTimeout(3000);
+  await expect
+    .poll(
+      async () => {
+        await gameClick(page, 444, 54);
+        await page.waitForTimeout(1500);
+        return onPrehistoryPage(page);
+      },
+      { timeout: 60_000, intervals: [500] },
+    )
+    .toBe(true);
   await gameClick(page, 640, 513);
-  await page.waitForTimeout(6000);
+  const steamAutosave = [...readFileSync(`${dataDir}/savegame/save08.dat`)];
+  await expect
+    .poll(async () => (await persistedFiles(page))['/persist/savegame/save08.dat'], { timeout: 60_000 })
+    .not.toEqual(steamAutosave);
   await page.screenshot({ path: `${shots}/escave.png` });
 
   await page.reload();
@@ -172,7 +196,12 @@ test('saves and settings survive a page reload', async ({ page }) => {
   const files = await persistedFiles(page);
   expect(Object.keys(files)).toContain('/persist/settings.toml');
   // Slot 8 is the autosave. It starts as the player's Steam autosave and is rewritten on escave entry.
-  const steamAutosave = [...readFileSync(`${dataDir}/savegame/save08.dat`)];
   expect(files['/persist/savegame/save08.dat']?.length).toBeGreaterThan(0);
   expect(files['/persist/savegame/save08.dat']).not.toEqual(steamAutosave);
+});
+
+test('the game plays through the audio context unlocked by the Play click', async ({ page }) => {
+  await importData(page);
+  await playToMenu(page);
+  expect(await page.evaluate(() => (window as any).vangersAudio?.state)).toBe('running');
 });

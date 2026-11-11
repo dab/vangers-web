@@ -21,7 +21,10 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'], viewport: { width: 1133, height: 744 }, hasTouch: true, isMobile: true },
     },
     ...(gameData
-      ? [{ name: 'full', testMatch: /game\.spec/, timeout: 300_000, use: { ...devices['Desktop Chrome'] } }]
+      ? [
+          { name: 'full', testMatch: /game\.spec/, timeout: 300_000, use: { ...devices['Desktop Chrome'] } },
+          { name: 'full-safari', testMatch: /game\.spec/, timeout: 300_000, use: { ...devices['Desktop Safari'] } },
+        ]
       : []),
   ],
 });
