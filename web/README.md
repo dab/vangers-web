@@ -6,6 +6,8 @@ GOG); the site itself contains no game data, so it can be hosted anywhere.
 
 ## Playing
 
+**Play now: https://dab.github.io/vangers-web/**
+
 1. Open the page and choose the `data` folder of your Vangers installation
    (or drop it onto the page). On a tablet, choose a `.zip` of that folder.
    - Steam on macOS: `~/Library/Application Support/Steam/steamapps/common/Vangers/data`

@@ -40,6 +40,8 @@ You can see the [wiki pages](https://github.com/KranX/Vangers/wiki) to learn how
 
 ## Playing in the browser
 
+**Play now: https://dab.github.io/vangers-web/**
+
 A WebAssembly build runs the game in desktop and tablet browsers using the
 files from your own copy. See [`web/README.md`](web/README.md) for playing,
 building and deploying it.
